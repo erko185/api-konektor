@@ -1,0 +1,13 @@
+https://admin.depo.sk/
+e-mail: support@oktodigital.com
+heslo: okto01
+
+
+Toto je pristup do testovacej administracie
+Stránka pre prihlásenie: 295925.myshoptet.com/admin
+E-mail na prihlásenie: stevo@depo.sk
+Heslo: iyat-ibu-loyuv
+
+
+php -S localhost:8000 -t public
+
