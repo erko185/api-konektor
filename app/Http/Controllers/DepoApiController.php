@@ -15,7 +15,7 @@ class DepoApiController extends Controller
 
     public function __construct()
     {
-        $this->api = 'https://admin.depo.sk/v2/api';
+        $this->api = env("DEPOAPI");
     }
 
     public function places()
@@ -97,20 +97,13 @@ class DepoApiController extends Controller
 
     }
 
-//    public function package(Kiosk $kiosk, string $number) {
-//        $hashPassword = new HashPasswordController();
-//        $apiPassword = $hashPassword->unHashPassword($kiosk->depo_api_password);
-//
-//        $response = Http::acceptJson()->withBasicAuth( $kiosk->depo_api_user, $apiPassword )->get( "$this->api/packages/$number" );
-//        return $response;
-//    }
-//
-//    public function packages(Kiosk $kiosk) {
-//        $hashPassword = new HashPasswordController();
-//        $apiPassword = $hashPassword->unHashPassword($kiosk->depo_api_password);
-//
-//        $response = Http::acceptJson()->withBasicAuth( $kiosk->depo_api_user, $apiPassword )->get( "$this->api/packages" );
-//        return $response;
-//    }
+
+    public function getPackagesAuthentification(ShoptetUserLogin $shoptetUserLogin) {
+        $hashPassword = new HashPasswordController();
+        $apiPassword = $hashPassword->rw_hash($shoptetUserLogin->password,false);
+
+        $response = Http::acceptJson()->withBasicAuth( $shoptetUserLogin->name, $apiPassword )->get( $this->api."/packages" );
+        return $response->status();
+    }
 
 }

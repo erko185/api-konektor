@@ -15,7 +15,8 @@ class Logs extends Migration
     {
         Schema::create('logs', function (Blueprint $table) {
             $table->id();
-            $table->text("pokus");
+            $table->text("access_token");
+            $table->text("eshop_id");
 
             $table->timestamps();
             $table->softDeletes();

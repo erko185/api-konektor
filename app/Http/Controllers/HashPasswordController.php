@@ -4,16 +4,25 @@ namespace App\Http\Controllers;
 
 class HashPasswordController extends Controller
 {
-    private $ciphering = "AES-128-CTR";
-    private $options = 0;
-    private $encryption_iv = '1205202109480000';
-    private $encryption_key = "depo-cps";
+private $encrypt_method = "AES-256-CBC";
+private $secret_key = "AA74CDCC2BBRT935136HH7B63C27";
+private $secret_iv = "RwS3cr3t";
+private $key = "";
 
-    public function hashPassword(string $password) {
-        return openssl_encrypt($password, $this->ciphering, $this->encryption_key, $this->options, $this->encryption_iv);
-    }
+public function __construct()
+{
+    $this->key = hash("sha256", $this->secret_key);
+}
 
-    public function unHashPassword(string $encrypted) {
-        return openssl_decrypt($encrypted, $this->ciphering, $this->encryption_key, $this->options, $this->encryption_iv);
+    function rw_hash($string, $encrypt = true)
+    {
+        $iv = substr(hash("sha256", $this->secret_iv), 0, 16); // sha256 is hash_hmac_algo
+        if ($encrypt) {
+            $output = openssl_encrypt($string, $this->encrypt_method, $this->key, 0, $iv);
+            $output = base64_encode($output);
+        } else {
+            $output = openssl_decrypt(base64_decode($string), $this->encrypt_method, $this->key, 0, $iv);
+        }
+        return $output;
     }
 }

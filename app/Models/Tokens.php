@@ -31,7 +31,8 @@ class Tokens extends Model
     public static function getToken($eshopId){
 
 
-        $token=Tokens::select('token')->where([["eshop_id",$eshopId],['created_at','<=',date("Y-m-d H:i:s", strtotime("-30 minutes"))]])->orderBy('created_at','desc')->get();
+        $token=Tokens::select('token','created_at')->where([["eshop_id",$eshopId],['created_at','>=',date("Y-m-d H:i:s", strtotime("-30 minutes"))]])->orderBy('created_at','desc')->get();
+
 
         if(sizeof($token)>0){
             return $token[0]->token;

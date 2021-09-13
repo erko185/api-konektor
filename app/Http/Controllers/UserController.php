@@ -5,25 +5,41 @@ namespace App\Http\Controllers;
 
 use App\Models\ShoptetUserLogin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
 
-    public function password(Request $request){
+
+
+    public function password(Request $request,HashPasswordController $hashPasswordController,DepoApiController $depoApiController){
 
 
         if(sizeof(ShoptetUserLogin::where("eshop_id",$request->eshop_id)->get())>0){
             $state=  ShoptetUserLogin::where("eshop_id",$request->eshop_id)->update([
                 'name'=>$request->email,
-                'password'=> Hash::make($request->password),
+                'password'=> $hashPasswordController->rw_hash($request->password),
                 'address'=> $request->address,
 
 
             ]);
         }
         else{
-            $state= ShoptetUserLogin::insert(["name"=>$request->email,"password"=>Hash::make($request->password),"eshop_id"=>$request->eshop_id, 'address'=> $request->address,]);
+
+
+            $ShoptetUserLogin=new ShoptetUserLogin();
+            $ShoptetUserLogin->name=$request->email;
+            $ShoptetUserLogin->password=$hashPasswordController->rw_hash($request->password);
+            $ShoptetUserLogin->eshop_id=$request->eshop_id;
+            $ShoptetUserLogin->address=$request->address;
+
+            if($depoApiController->getPackagesAuthentification($ShoptetUserLogin)==200){
+                $state= ShoptetUserLogin::insert(["name"=>$request->email,"password"=> $hashPasswordController->rw_hash($request->password),"eshop_id"=>$request->eshop_id, 'address'=> $request->address,]);
+            }
+            else{
+                return 'wrong data';
+            }
 
         }
 

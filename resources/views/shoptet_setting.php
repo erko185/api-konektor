@@ -69,12 +69,12 @@
                 <input type="hidden"  name="eshop_id" value="<?php echo $_GET["eshopId"] ?>">
                 <div class="form-group">
                     <label for="email">E-mailova adresa</label>
-                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
+                    <input value="<?php echo $name ?>" type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"
                            placeholder="Vložte email">
                 </div>
                 <div class="form-group">
                     <label for="exampleInputPassword1">Heslo</label>
-                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Vložte heslo">
+                    <input  value="<?php echo $password ?>" type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Vložte heslo">
                 </div>
                 <div class="form-check">
                     <input type="checkbox" name="address" class="form-check-input" id="pick">
@@ -106,6 +106,13 @@
                     $("#snackbar").attr("style",'background:#04aa6d')
                     var x = document.getElementById("snackbar");
                     x.className = "show success";
+                    setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+                }
+                else if(data=='wrong data'){
+                    $("#snackbar").empty().append("Nespravné prihlasovacie údaje")
+                    $("#snackbar").attr("style",'background:red')
+                    var x = document.getElementById("snackbar");
+                    x.className = "show alert";
                     setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
                 }
                 else{
