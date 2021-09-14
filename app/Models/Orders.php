@@ -16,8 +16,9 @@ class Orders extends Model
 
     protected $fillable = [
         'id',
-        'shop_id',
-        'client_id',
+        'eshop_id',
+        'order_id',
+        'order_id_depo',
         'data',
         'status',
     ];

@@ -17,7 +17,6 @@ class ShoptetUser extends Model
     protected $fillable = [
         'id',
         'name',
-        'password',
         'eshop_id',
         'eshop_url',
         'contact_email',
@@ -30,4 +29,10 @@ class ShoptetUser extends Model
         'created_at',
         'deleted_at'
     ];
+
+    public function shoptetUserLogin()
+    {
+        return $this->belongsTo(ShoptetUserLogin::class,'eshop_id','eshop_id');
+    }
+
 }

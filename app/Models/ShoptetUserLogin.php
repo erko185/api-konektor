@@ -17,6 +17,7 @@ class ShoptetUserLogin extends Model
     protected $fillable = [
         'id',
         'name',
+        'address',
         'password',
         'eshop_id',
     ];

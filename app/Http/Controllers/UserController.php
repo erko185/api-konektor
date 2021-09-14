@@ -35,8 +35,7 @@ class UserController extends Controller
             $ShoptetUserLogin->address=$request->address;
 
             if($depoApiController->getPackagesAuthentification($ShoptetUserLogin)==200){
-                $state= ShoptetUserLogin::insert(["name"=>$request->email,"password"=> $hashPasswordController->rw_hash($request->password),"eshop_id"=>$request->eshop_id, 'address'=> $request->address,]);
-            }
+                $state= $ShoptetUserLogin->save();            }
             else{
                 return 'wrong data';
             }

@@ -15,7 +15,9 @@ class Orders extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->integer('eshopId');
+            $table->string('eshop_id',255);
+            $table->string('order_id',255)->nullable();
+            $table->string('order_id_depo',255)->nullable();
             $table->text('data');
             $table->string('status',20);
 

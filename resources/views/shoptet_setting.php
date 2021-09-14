@@ -77,7 +77,7 @@
                     <input  value="<?php echo $password ?>" type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Vložte heslo">
                 </div>
                 <div class="form-check">
-                    <input type="checkbox" name="address" class="form-check-input" id="pick">
+                    <input type="checkbox" <?php if($address!="") echo 'checked'?> name="address" class="form-check-input" id="pick">
                     <label class="form-check-label" for="exampleCheck1">Vyzdvihnúť z adresy klienta</label>
                 </div>
 
