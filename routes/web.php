@@ -21,6 +21,7 @@ $router->get('settings', ['uses' => 'ShoptetController@setting']);
 
 $router->get('send', ['uses' => 'DepoApiController@send']);
 $router->get('places', ['uses' => 'DepoApiController@places']);
+$router->get('send_again', ['uses' => 'DepoApiController@sendAgain']);
 $router->get('install', ['uses' => 'ShoptetController@install']);
 $router->get('unistall', ['uses' => 'ShoptetController@unistall']);
 $router->get('create_order', ['uses' => 'ShoptetController@createOrder']);

@@ -17,14 +17,16 @@ class ShoptetController extends Controller
 {
 
     private $clientId = "";
+    private $clientCode = "";
     private $oauthServerTokenUrl = "";
     private $apiAccessTokenUrl = "";
     private $urlShop = "";
 
     public function __construct()
     {
-        $this->clientId = env('clientId');
-        $this->oauthServerTokenUrl = env('oauthServerTokenUrl');
+        $this->clientId = env('CLIENTID');
+        $this->clientCode = env('CLIENTCODE');
+        $this->oauthServerTokenUrl = env('OAUTHSERVERTOKENURL');
         $this->apiAccessTokenUrl = env('SHOPTETURLAPI');
         $this->urlShop = env('URLSHOP');
     }
@@ -36,21 +38,13 @@ class ShoptetController extends Controller
             'code' => $request->code,
             'grant_type' => 'authorization_code',
             'client_id' => $this->clientId,
+            'client_secret' => $this->clientCode,
             'redirect_uri' => $request->getSchemeAndHttpHost() . env('INSTALLURL'),
             'scope' => 'api'
         ];
 
 
-        $curl = curl_init($this->oauthServerTokenUrl);
-        curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $oAuthRequest);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        $jsonOAuthResponse = curl_exec($curl);
-        $statusCode = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-        curl_close($curl);
-
-
-        $oAuthResponse = json_decode($jsonOAuthResponse, true);
+        $oAuthResponse = json_decode($this->requestSend($oAuthRequest,$this->oauthServerTokenUrl), true);
         ShoptetUser::insert(['scope' => $oAuthResponse['scope'], 'eshop_id' => $oAuthResponse['eshopId'], 'eshop_url' => $oAuthResponse['eshopUrl'], 'access_token' => $oAuthResponse['access_token'], 'created_at' => date('Y-m-d H:i:s', strtotime("-2 hours"))]);
 
         //install shipping method
@@ -166,6 +160,8 @@ class ShoptetController extends Controller
         exit();
     }
 
+
+
     public function hookRegistration(Request $request, $token)
     {
         $data = [
@@ -187,17 +183,13 @@ class ShoptetController extends Controller
     {
 
 
-        dump($request->code);
-//     dump($this->getApiEndpointData('/webhooks','ih61q1ivqrhhdr0og3kw8lp0q1x3xowiwb361tgbfkkh7palinflea124y7mx97emtlngfw0axrb2f59pp5zrjh7ulis0zoi7dkcrcxplu9y1ai3zk0s7o75qvydbp6s6uqzwrma8eioctpium9vt15nhn4g2mrxru2z9rsjtzdfb1xq1lstc5o92jl63ryj1gxjb9dl20x8nw4gqd1labw0oxdakey7wtnzrey8imfeuhccxkecc624iaqxy3y'));
-
-
-        exit;
         $body = file_get_contents('php://input');
         $webhook = json_decode($body, TRUE);
         $log = new Logs();
-        $log->access_token = 'sadasdasd';
+        $log->access_token = 'nnnnn';
         $log->eshop_id = 'asdasdasdasd';
         $log->save();
+
 
         ShoptetUser::where("eshop_id", $webhook['eshopId'])->delete();
     }
@@ -205,21 +197,26 @@ class ShoptetController extends Controller
 
     public function setting(Request $request)
     {
+
         if (!isset($request->access)) {
             return $this->authetificationUser($request);
-        } else {
+        } else if($request->access=='true') {
             if ($request->session()->get('access_token') == Logs::getToken($request->eshopId)) {
 
                 $userData = ShoptetUserLogin::where('eshop_id', $request->eshopId)->get();
                 if (sizeof($userData) > 0) {
                     $decrypted = new HashPasswordController();
-                    return view('shoptet_setting', ['name' => $userData[0]->name, 'password' => $decrypted->rw_hash($userData[0]->password, false), 'address' => $userData[0]->address]);
+                    return view('shoptet_setting', ['access'=>true,'name' => $userData[0]->name, 'password' => $decrypted->rw_hash($userData[0]->password, false), 'address' => $userData[0]->address]);
 
                 } else {
-                    return view('shoptet_setting', ['name' => '', 'password' => '', 'address' => '']);
+                    return view('shoptet_setting', ['access' => true,'name' => '', 'password' => '', 'address' => '']);
                 }
 
             }
+        }
+        else{
+            return view('shoptet_setting', ['access' => false]);
+
         }
     }
 
@@ -244,23 +241,18 @@ class ShoptetController extends Controller
                 }
 
                 $url = $baseOAuthUrl . 'authorize';
-
-                $oAuthRequest = [
-                    'client_id' => $this->clientId,
-                    'response_type' => 'code',
-                    'redirect_uri' => "https://instal.techband.io/public/authorization",
-                    'scope' => $dataUser[0]->scope,
-
-                ];
+                $state = uniqid();
 
                 $request->session()->put('baseOAuthUrl', $baseOAuthUrl);
                 $request->session()->put('scope', $dataUser[0]->scope);
                 $request->session()->put('eshopId', $request->eshopId);
+                $request->session()->put('state', $state);
 
 
                 $param['client_id'] = $this->clientId;
                 $param['response_type'] = 'code';
                 $param['scope'] = $dataUser[0]->scope;
+                $param['state'] = $state;
                 $param['redirect_uri'] = $request->getSchemeAndHttpHost() . env('AUTHORIZATIONURL');
                 $url = $url . "?" . http_build_query($param);
 
@@ -274,30 +266,21 @@ class ShoptetController extends Controller
     public function code(Request $request)
     {
 
-//        $data = [
-//            'code' => $request->code,
-//            'grant_type' => 'authorization_code',
-//            'client_id' => $this->clientId,
-//            'redirect_uri' => $request->getSchemeAndHttpHost().env('AUTHORIZATIONURL'),
-//            'scope' => 'api'
-//        ];
-//        $url = $request->session()->get('baseOAuthUrl') . 'token';
-//
-//        $curl = curl_init($url);
-//        curl_setopt($curl, CURLOPT_POST, true);
-//        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-//        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-//        $response = curl_exec($curl);
-//        $err = curl_error($curl);
-//        curl_close($curl);
-//
-//        dump($response);
-//
-//        $data = json_decode($response, true);
-//        $accessToken = $data['access_token'];
-//
-//        exit;
-        if (isset($request->code)) {
+        if( $request->state==$request->session()->get('state') ){
+        $data = [
+            'code' => $request->code,
+            'grant_type' => 'authorization_code',
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientCode,
+            'redirect_uri' => $request->getSchemeAndHttpHost().env('AUTHORIZATIONURL'),
+            'scope' => $request->session()->get('scope')
+        ];
+        $url = $request->session()->get('baseOAuthUrl') . 'token';
+
+        $response = json_decode($this->requestSend($data,$url), TRUE);
+        $accessToken = $response['access_token'];
+
+        if ($accessToken!=="" || $accessToken!=null) {
 
             $accessTokenMy = uniqid();
             $log = new Logs();
@@ -318,6 +301,12 @@ class ShoptetController extends Controller
             return response()->json(['code' => null])
                 ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
         }
+        }{
+        return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=false');
+
+        return response()->json(['code' => null])
+            ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
+    }
 
 
     }
@@ -369,8 +358,7 @@ class ShoptetController extends Controller
     }
 
 
-    public
-    function fetchNewApiAccessTokenData($oAuthToken)
+    public function fetchNewApiAccessTokenData($oAuthToken)
     {
 
         $curl = curl_init($this->apiAccessTokenUrl);
@@ -380,6 +368,17 @@ class ShoptetController extends Controller
         curl_close($curl);
 
         return json_decode($response, true);
+    }
+
+    public function requestSend($data,$url){
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        $returnData = curl_exec($curl);
+        curl_close($curl);
+
+        return $returnData;
     }
 
 
