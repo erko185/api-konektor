@@ -53,7 +53,7 @@ class ShoptetController extends Controller
 
                 'name' => "Depo.sk",
                 'description' => "Delivery within 48 hours",
-                'shippingCompanyCode' => "intime",
+                'shippingCompanyCode' => "deposk",
                 'visibility' => true,
                 'wholesale' => false,
 
