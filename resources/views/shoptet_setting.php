@@ -58,7 +58,6 @@
 </head>
 <body>
 <div class="container">
-    <div class="insert"></div>
     <div class="row" style="margin-top:20px">
 
         <?php  if($access){?>
@@ -92,8 +91,6 @@
 </div>
 <div id="snackbar"></div>
 <script>
-    $(".insert").append("<iframe src=\"https://admin.depo.sk/eshop?c=1&o=unikatne_cislo_objednavky\" width=\"600\" height=\"600\" frameborder=\"0\"></iframe>\n");
-
     $("#data").submit(function(e) {
 
         e.preventDefault(); // avoid to execute the actual submit of the form.
