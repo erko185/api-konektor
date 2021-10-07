@@ -96,8 +96,14 @@ class DepoApiController extends Controller
     }
 
 
-    public function cancelSend($object, $userData)
+    public function cancelSend($orderId, $userData)
     {
+
+        $order=Orders::where('order_id',$orderId)->get();
+         $object = [
+             'number' =>$order[sizeof($order)-1]->order_id_depo
+         ];
+
 
         $response = Http::acceptJson()->withBasicAuth($userData[0]->shoptetUserLogin->name, $this->hashPasswordController->rw_hash($userData[0]->shoptetUserLogin->password, false))->post($this->api . "/packages/cancel", $object);
         return $response->status();

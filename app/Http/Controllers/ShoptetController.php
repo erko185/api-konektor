@@ -44,7 +44,7 @@ class ShoptetController extends Controller
         ];
 
 
-        $oAuthResponse = json_decode($this->requestSend($oAuthRequest,$this->oauthServerTokenUrl), true);
+        $oAuthResponse = json_decode($this->requestSend($oAuthRequest, $this->oauthServerTokenUrl), true);
         ShoptetUser::insert(['scope' => $oAuthResponse['scope'], 'eshop_id' => $oAuthResponse['eshopId'], 'eshop_url' => $oAuthResponse['eshopUrl'], 'access_token' => $oAuthResponse['access_token'], 'created_at' => date('Y-m-d H:i:s', strtotime("-2 hours"))]);
 
         //install shipping method
@@ -61,25 +61,38 @@ class ShoptetController extends Controller
         ];
 
         $this->getApiEndpointData('/shipping-methods', $this->getToken($oAuthResponse['eshopId'], $oAuthResponse['access_token']), json_encode($data));
+
+        $data = [
+            'data' => [
+
+                'name' => "Depo.sk - na adresu",
+                'description' => "Delivery within 48 hours",
+                'shippingCompanyCode' => "deposk",
+                'visibility' => true,
+                'wholesale' => false,
+
+            ]
+        ];
+
+        $this->getApiEndpointData('/shipping-methods', $this->getToken($oAuthResponse['eshopId'], $oAuthResponse['access_token']), json_encode($data));
+
         $this->hookRegistration($request, $this->getToken($oAuthResponse['eshopId'], $oAuthResponse['access_token']));
     }
 
 
     public function createOrder(Request $request)
     {
-
+//
         $log = new Logs();
-        $log->access_token = 'pokus';
-        $log->eshop_id = 'asdasdasdasd';
+        $log->access_token = $request->eventInstance;
+        $log->eshop_id = $request->eshopId;
         $log->save();
 
-
-        exit;
         $dataUser = ShoptetUser::with("shoptetUserLogin")->where("eshop_id", $request->eshopId)->get();
-
-        $data = $this->getApiEndpointData('/orders/2021000005', $this->getToken($request->eshopId, $dataUser[0]->access_token));
-
-
+//        $data = $this->getApiEndpointData('/orders/2021000025', $this->getToken(295925, $dataUser[0]->access_token));
+        $data = $this->getApiEndpointData('/orders/' . $request->eventInstance, $this->getToken($request->eshopId, $dataUser[0]->access_token));
+//        dump($data['data']['order']);
+//        echo "aa";
         if (strtolower($data['data']['order']['shipping']['name']) == "depo.sk") {
             $recipentName = $recipentPhone = $recipentStreet = $recipentZip = $recipentCity = $recipentCountry = $recipentEmail = "";
 
@@ -102,7 +115,7 @@ class ShoptetController extends Controller
             }
 
 
-            if($dataUser[0]->shoptetUserLogin->address!=""){
+            if ($dataUser[0]->shoptetUserLogin->address != "") {
                 $object = [
                     "target" => "31703542",
                     "recipient_name" => $recipentName,
@@ -114,12 +127,11 @@ class ShoptetController extends Controller
                     "recipient_email" => $recipentEmail,
                     "insurance_currency" => $data['data']['order']['price']['currencyCode'],
                     "insurance" => $data['data']['order']['price']['withVat'],
-                    'sender_reference' => '2021000004',
+                    'sender_reference' => $request->eventInstance,
                     "deliver_to_address" => "Doručiť na adresu zákazníka",
                     "pickup_from_address" => "Vyzdvihnúť z adresy klienta",
                 ];
-            }
-            else{
+            } else {
                 $object = [
                     "target" => "31703542",
                     "recipient_name" => $recipentName,
@@ -131,35 +143,31 @@ class ShoptetController extends Controller
                     "recipient_email" => $recipentEmail,
                     "insurance_currency" => $data['data']['order']['price']['currencyCode'],
                     "insurance" => $data['data']['order']['price']['withVat'],
-                    'sender_reference' => '2021000004',
+                    'sender_reference' => $request->eventInstance,
                 ];
             }
-
-
-            $depoApiController=new DepoApiController();
-            $depoApiController->send($object,$dataUser);
+            $depoApiController = new DepoApiController();
+            $depoApiController->send($object, $dataUser);
 
         }
 
-
+//        $log = new Logs();
+//        $log->access_token = 'pokus';
+//        $log->eshop_id = 'iii';
+//        $log->save();
 
     }
 
 
-    public function cancelOrder(Request $request){
+    public function cancelOrder(Request $request)
+    {
+
 
         $dataUser = ShoptetUser::with("shoptetUserLogin")->where("eshop_id", $request->eshopId)->get();
 
-
-        $object=[
-            'number'=>'2000002839576'
-        ];
-
-        $depoApiController=new DepoApiController();
-        dump($depoApiController->cancelSend($object,$dataUser));
-        exit();
+        $depoApiController = new DepoApiController();
+        $depoApiController->cancelSend($request->eventInstance, $dataUser);
     }
-
 
 
     public function hookRegistration(Request $request, $token)
@@ -169,6 +177,10 @@ class ShoptetController extends Controller
                 [
                     'event' => "order:create",
                     'url' => $request->getSchemeAndHttpHost() . env('CREATEORDER')
+                ],
+                [
+                    'event' => "order:delete",
+                    'url' => $request->getSchemeAndHttpHost() . env('DELETEORDER')
                 ],
             ]
         ];
@@ -186,12 +198,14 @@ class ShoptetController extends Controller
         $body = file_get_contents('php://input');
         $webhook = json_decode($body, TRUE);
         $log = new Logs();
-        $log->access_token = 'nnnnn';
+        $log->access_token = 'iiii';
         $log->eshop_id = 'asdasdasdasd';
         $log->save();
 
-
+        ShoptetUserLogin::where("eshop_id", $webhook['eshopId'])->delete();
         ShoptetUser::where("eshop_id", $webhook['eshopId'])->delete();
+
+        Tokens::where("eshop_id", $webhook['eshopId'])->delete();
     }
 
 
@@ -200,26 +214,42 @@ class ShoptetController extends Controller
 
         if (!isset($request->access)) {
             return $this->authetificationUser($request);
-        } else if($request->access=='true') {
+        } else if ($request->access == 'true') {
             if ($request->session()->get('access_token') == Logs::getToken($request->eshopId)) {
 
                 $userData = ShoptetUserLogin::where('eshop_id', $request->eshopId)->get();
                 if (sizeof($userData) > 0) {
                     $decrypted = new HashPasswordController();
-                    return view('shoptet_setting', ['access'=>true,'name' => $userData[0]->name, 'password' => $decrypted->rw_hash($userData[0]->password, false), 'address' => $userData[0]->address]);
+                    return view('shoptet_setting', ['access' => true, 'name' => $userData[0]->name, 'password' => $decrypted->rw_hash($userData[0]->password, false), 'address' => $userData[0]->address]);
 
                 } else {
-                    return view('shoptet_setting', ['access' => true,'name' => '', 'password' => '', 'address' => '']);
+                    return view('shoptet_setting', ['access' => true, 'name' => '', 'password' => '', 'address' => '']);
                 }
 
             }
-        }
-        else{
+        } else {
             return view('shoptet_setting', ['access' => false]);
 
         }
     }
 
+
+    public function shippingUpdate(Request $request)
+    {
+        $dataUser = ShoptetUser::select('access_token', 'scope')->where("eshop_id",295925)->get();
+        if (sizeof($dataUser) < 1) {
+            return 'false';
+        } else {
+            if (!isset($request->code)) {
+//                $data=$this->requestSendPut('', '/shipping-request/'.$request->shippingRequestCode.'/'. $request->shippingGuid, $this->getToken($request->eshopId, $dataUser[0]->access_token));
+//                dump($this->requestSendPut('', '/shipping-request/'.$request->shippingRequestCode.'/'. $request->shippingGuid, $this->getToken($request->eshopId, $dataUser[0]->access_token)));
+//                dump($this->getApiEndpointData('/shipping-request/'.$request->shippingRequestCode.'/'. $request->shippingGuid, $this->getToken($request->eshopId, $dataUser[0]->access_token)));
+//                dump($this->getApiEndpointData('/shipping-request/'.$request->shippingRequestCode.'/'. $request->shippingGuid."/status", $this->getToken($request->eshopId, $dataUser[0]->access_token)));
+
+//                return json_decode($data)->data->verificationCode;
+            }
+        }
+    }
 
     public function authetificationUser(Request $request)
     {
@@ -231,7 +261,7 @@ class ShoptetController extends Controller
 
             if (!isset($request->code)) {
                 $data = $this->getApiEndpointData('/eshop', $this->getToken($request->eshopId, $dataUser[0]->access_token));
-
+//                $data = $this->getApiEndpointData('/webhooks/notifications', $this->getToken($request->eshopId, $dataUser[0]->access_token));
                 $baseOAuthUrl = null;
 
                 foreach ($data['data']['urls'] as $value) {
@@ -266,47 +296,48 @@ class ShoptetController extends Controller
     public function code(Request $request)
     {
 
-        if( $request->state==$request->session()->get('state') ){
-        $data = [
-            'code' => $request->code,
-            'grant_type' => 'authorization_code',
-            'client_id' => $this->clientId,
-            'client_secret' => $this->clientCode,
-            'redirect_uri' => $request->getSchemeAndHttpHost().env('AUTHORIZATIONURL'),
-            'scope' => $request->session()->get('scope')
-        ];
-        $url = $request->session()->get('baseOAuthUrl') . 'token';
+        if ($request->state == $request->session()->get('state')) {
+            $data = [
+                'code' => $request->code,
+                'grant_type' => 'authorization_code',
+                'client_id' => $this->clientId,
+                'client_secret' => $this->clientCode,
+                'redirect_uri' => $request->getSchemeAndHttpHost() . env('AUTHORIZATIONURL'),
+                'scope' => $request->session()->get('scope')
+            ];
+            $url = $request->session()->get('baseOAuthUrl') . 'token';
 
-        $response = json_decode($this->requestSend($data,$url), TRUE);
-        $accessToken = $response['access_token'];
+            $response = json_decode($this->requestSend($data, $url), TRUE);
+            $accessToken = $response['access_token'];
 
-        if ($accessToken!=="" || $accessToken!=null) {
+            if ($accessToken !== "" || $accessToken != null) {
 
-            $accessTokenMy = uniqid();
-            $log = new Logs();
-            $log->access_token = $accessTokenMy;
-            $log->eshop_id = $request->session()->get('eshopId');
-            $log->save();
+                $accessTokenMy = uniqid();
+                $log = new Logs();
+                $log->access_token = $accessTokenMy;
+                $log->eshop_id = $request->session()->get('eshopId');
+                $log->save();
 
-            $request->session()->put('access_token', $accessTokenMy);
+                $request->session()->put('access_token', $accessTokenMy);
 
-            return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=true')->header("aaa", 'sadasd');
+                return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=true')->header("aaa", 'sadasd');
 
 
-            return response()->json(['code' => $request->code])
-                ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
-        } else {
+                return response()->json(['code' => $request->code])
+                    ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
+            } else {
+                return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=false');
+
+                return response()->json(['code' => null])
+                    ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
+            }
+        }
+        {
             return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=false');
 
             return response()->json(['code' => null])
                 ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
         }
-        }{
-        return redirect($request->getSchemeAndHttpHost() . "/public/settings?eshopId=" . $request->session()->get('eshopId') . '&access=false');
-
-        return response()->json(['code' => null])
-            ->setStatusCode(Response::HTTP_OK, Response::$statusTexts[Response::HTTP_OK]);
-    }
 
 
     }
@@ -370,10 +401,54 @@ class ShoptetController extends Controller
         return json_decode($response, true);
     }
 
-    public function requestSend($data,$url){
+    public function requestSend($data, $url)
+    {
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        $returnData = curl_exec($curl);
+        curl_close($curl);
+
+        return $returnData;
+    }
+
+    public function requestSendPut($data, $url, $token)
+    {
+
+        $curl = curl_init("https://api.myshoptet.com/api" . $url);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            "Content-Type: application/vnd.shoptet.v1.0",
+            "Shoptet-Access-Token: " . $token . "",
+        ));
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, "{
+  \"data\": {
+    \"description\": \"Depo.sk\",
+    \"currency\": \"EUR\",
+    \"price\": {
+      \"priceWithVat\": \"0.00\",
+      \"priceWithoutVat\": \"0.00\",
+      \"vatRate\": \"0.00\"
+    },
+    \"expires\": \"2025-12-12T22:08:01+0100\",
+    \"deliveryAddress\": {
+      \"fullName\": \"API Objednávka\",
+      \"company\": \"Firma bez ručení\",
+      \"street\": \"Rovná\",
+      \"houseNumber\": \"13\",
+      \"city\": \"Rovina\",
+      \"district\": \"Čechy\",
+      \"additional\": \"Ve dvoře\",
+      \"zip\": \"123 00\",
+      \"countryCode\": \"SK\",
+      \"regionName\": \"Středočeský kraj\",
+      \"regionShortcut\": \"SC\"
+    },
+    \"trackingNumber\": \"U134666\"
+  }
+}");
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         $returnData = curl_exec($curl);
         curl_close($curl);

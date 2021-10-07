@@ -1,5 +1,4 @@
 (function(shoptet) {
-console.log(getShoptetDataLayer());
     var myCustomRuntimeObject = {};
     myCustomRuntimeObject.updated = false;
     // create content of modal
@@ -8,7 +7,7 @@ console.log(getShoptetDataLayer());
     modalContent.style.width="100%";
     var iframe = document.createElement('iframe');
     iframe.src='https://admin.depo.sk/eshop?c=1&o='+shoptet.checkoutShared.shippingRequestCode;
-    iframe.id="aaa";
+    iframe.id="iframe";
     iframe.style.height="600px";
     iframe.style.width="600px";
     iframe.addEventListener('click',function(e){
@@ -20,7 +19,7 @@ console.log(getShoptetDataLayer());
     link.addEventListener('click', function (e) {
         e.preventDefault();
         // do all your necessary stuff here
-        myCustomRuntimeObject.branchId = Math.ceil(Math.random(2) * 10);
+        myCustomRuntimeObject.branchId =3375;
         myCustomRuntimeObject.label =
             'Label of branch' + myCustomRuntimeObject.branchId;
         myCustomRuntimeObject.price = {
@@ -29,11 +28,18 @@ console.log(getShoptetDataLayer());
         };
         // mark change of shipping here
         myCustomRuntimeObject.updated = true;
-        console.log(    myCustomRuntimeObject.label)
         shoptet.modal.close();
     });
     modalContent.appendChild(link);
     // modalContent.appendChild(iframe);
+
+
+    window.addEventListener("click", () => {
+            if (document.activeElement.tagName === "IFRAME") {
+                console.log("clicked");
+            }
+    }, { once: true });
+
 
     // do not ever rewrite shoptet nor shoptet.externalShipping object
     shoptet.externalShipping = shoptet.externalShipping || {};
@@ -44,9 +50,7 @@ console.log(getShoptetDataLayer());
         onComplete: function(el) {
             // code executed after the modal is fully loaded
             // you have access to element containing your shipping method details
-            // console.log(el);
-
-
+            console.log(el);
 
             // $.ajax({
             //     type: "GET",
@@ -72,19 +76,42 @@ console.log(getShoptetDataLayer());
                     'ShoptetExternalShippingChanged',
                     {
                         detail: {
-                            price: myCustomRuntimeObject.price,
+                            price :{
+                                withVat: 0,
+                                withoutVat: 0
+                            },
                             branch: {
                                 id: myCustomRuntimeObject.branchId,
-                                label: myCustomRuntimeObject.label
-                            }
+                                label:myCustomRuntimeObject.label,
+                            },
+                            label:myCustomRuntimeObject.label,
                         }
                     }
                 );
-                console.log("aaaa");
-                console.log(myCustomRuntimeObject);
+            //     $.ajax({
+            //         type: "GET",
+            //         url: 'https://instal.techband.io/public/shipping_update?eshopId='+ getShoptetDataLayer().projectId+'&shippingRequestCode='+shoptet.checkoutShared.shippingRequestCode+'&shippingGuid='+$("input[data-code='deposk']").attr("data-guid"),
+            //         dataType: 'jsonp',
+            //         headers: {
+            //             'Access-Control-Allow-Origin': +window.location.href,
+            //             'Access-Control-Allow-Headers':'Content-Type',
+            //             'Access-Control-Allow-Credentials': true
+            //
+            // },
+            //         success: function (data) {
+            //             console.log(JSON.stringify(data))
+            //         },
+            //         error: function (data) {
+            //         },
+            //     })
+
+                console.log("evevevevevevevevevevevevevevevevevev");
                 console.log(ev);
                 el.dispatchEvent(ev);
                 myCustomRuntimeObject.updated = false;
+                console.log("hoptet.checkoutShared.activeShipping");
+                console.log( $("input[data-code='deposk']").attr("data-guid"));
+                console.log( getShoptetDataLayer().projectId);
             }
         }
     };

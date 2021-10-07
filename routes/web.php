@@ -23,8 +23,11 @@ $router->get('send', ['uses' => 'DepoApiController@send']);
 $router->get('places', ['uses' => 'DepoApiController@places']);
 $router->get('send_again', ['uses' => 'DepoApiController@sendAgain']);
 $router->get('install', ['uses' => 'ShoptetController@install']);
-$router->get('unistall', ['uses' => 'ShoptetController@unistall']);
-$router->get('create_order', ['uses' => 'ShoptetController@createOrder']);
+$router->post('unistall', ['uses' => 'ShoptetController@unistall']);
+$router->get('shipping_update', ['uses' => 'ShoptetController@shippingUpdate']);
+$router->post('cancel', ['uses' => 'ShoptetController@cancelOrder']);
+//$router->get('create_order', ['uses' => 'ShoptetController@createOrder']);
+$router->post('create_order', ['uses' => 'ShoptetController@createOrder']);
 $router->get('authorization', ['uses' => 'ShoptetController@code']);
 $router->group(['middleware' => 'cors'], function($router)
 {
