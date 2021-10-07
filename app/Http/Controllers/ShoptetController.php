@@ -60,6 +60,7 @@ class ShoptetController extends Controller
             ]
         ];
 
+
         $this->getApiEndpointData('/shipping-methods', $this->getToken($oAuthResponse['eshopId'], $oAuthResponse['access_token']), json_encode($data));
 
         $data = [
